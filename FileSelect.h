@@ -1,10 +1,13 @@
 #pragma once
 #include <wx/wx.h>
 
-class FileSelect : wxFrame
+class FileSelect : public wxFrame
 {
 public:
-	void BrowseForFile(wxCommandEvent& event);
+	wxWindowID FSFID;
+	std::string FilePath;
+	std::string FileName;
+	FileSelect();
+	void BrowseForFile();
 
-	DECLARE_EVENT_TABLE()
 };

@@ -8,101 +8,211 @@
 BEGIN_EVENT_TABLE(MainFrame, wxFrame)
 END_EVENT_TABLE()
 
+std::string FFMPEGCommand[3] = { "FilePath", "FileName" , "FileOut" };
+wxString vCodecChoices[] = { "" };
+wxTextCtrl* fileLocationBox;
+wxComboBox* vFormatSelection;
+wxListBox* vCodecSelection;
+wxComboBox* aCodecSelection;
+wxSpinCtrl* startHour;
+wxSpinCtrl* startMin;
+wxSpinCtrl* startSec;
+wxSpinCtrl* startMS;
+wxSpinCtrl* trimHour;
+wxSpinCtrl* trimMin;
+wxSpinCtrl* trimSec;
+wxSpinCtrl* trimMS;
+wxTextCtrl* fileOutput;
+wxCheckBox* trimVideo;
+
+
 MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
 {
-	Codecs codecs;
-
-
+	
 	wxPanel* panel = new wxPanel(this);
 
-	wxTextCtrl* fileLocationBox = new wxTextCtrl(panel, wxID_ANY, "", wxPoint(100, 50), wxSize(300, -1));
+	fileLocationBox = new wxTextCtrl(panel, wxID_ANY, "", wxPoint(100, 50), wxSize(300, -1));
 	wxButton* browse = new wxButton(panel, wxID_ANY, "Browse", wxPoint(400, 50), wxSize(100, -1));
-	Bind(wxEVT_BUTTON, &FileSelect::BrowseForFile, this, browse->GetId());
+	Bind(wxEVT_BUTTON, &MainFrame::BrowseForFile, this, browse->GetId());
 
-	wxString formatChoices[5] = { "MP4", "GIF", "WEBM", "MP3", "COPY" };
+	wxString formatChoices[5] = { "COPY", "MP4", "WEBM", "GIF (Unsupported)", "MP3" };
 
-	wxComboBox* formatSelection = new wxComboBox(panel, wxID_ANY, wxEmptyString, wxPoint(100, 100), wxSize(95, -1), 5, formatChoices);
-	formatSelection->Select(0);
+	vFormatSelection = new wxComboBox(panel, wxID_ANY, wxEmptyString, wxPoint(100, 100), wxSize(95, -1), 5, formatChoices, wxCB_READONLY);
+	vFormatSelection->Select(0);
+	Bind(wxEVT_COMBOBOX, &MainFrame::VCodecChanged, this, vFormatSelection->GetId());
 
-	//wxArrayString vcodecChoices(2, codecs.MP4);
-	wxString vcodecChoices[2]{ "liba","libb" };
-	//if (formatSelection->GetSelection() == 0)
-	//{
-	//	vcodecChoices (2, codecs.MP4);
-	//}
-	//else
-	//{
-	//	vcodecChoices()
-	//}
+	vCodecSelection = new wxListBox(panel, wxID_ANY, wxPoint(100, 153), wxSize(95, -1), 3, vCodecChoices);
+	vCodecSelection->Clear();
+	vCodecSelection->Append("copy");
+	vCodecSelection->Select(0);
 
-	//wxListBox* vCodexSelection = new wxListBox(panel, wxID_ANY, wxPoint(100, 150), wxSize(95, -1), vcodecChoices);
-	wxListBox* vCodexSelection = new wxListBox(panel, wxID_ANY, wxPoint(100, 150), wxSize(95, -1), 2, vcodecChoices);
-	vCodexSelection->Select(0);
+	wxString aCodecChoices[6] = { "COPY", "AAC", "MP3", "WAV", "FLAC", "NONE" };
+	aCodecSelection = new wxComboBox(panel, wxID_ANY, wxEmptyString, wxPoint(200, 100), wxSize(95, -1), 6, aCodecChoices, wxCB_READONLY);
+	aCodecSelection->Select(0);
 
-	wxString acodecChoices[2] = { "MP3", "a" };
-	wxComboBox* audioSelection = new wxComboBox(panel, wxID_ANY, wxEmptyString, wxPoint(200, 100), wxSize(95, -1), 2, acodecChoices);
-	audioSelection->Select(0);
+	trimVideo = new wxCheckBox(panel, wxID_ANY, " Trim Video", wxPoint(440, 167));
 
-	wxSpinCtrl* startHour = new wxSpinCtrl(panel, wxID_ANY, "", wxPoint(215, 150), wxSize(40, -1));
+	startHour = new wxSpinCtrl(panel, wxID_ANY, "", wxPoint(215, 150), wxSize(40, -1));
 	startHour->SetMax(59);
 	wxStaticText* sH = new wxStaticText(panel, wxID_ANY, "H", wxPoint(200, 155), wxSize(-1, -1));
 
-	wxSpinCtrl* startMin = new wxSpinCtrl(panel, wxID_ANY, "", wxPoint(277, 150), wxSize(40, -1));
+	startMin = new wxSpinCtrl(panel, wxID_ANY, "", wxPoint(277, 150), wxSize(40, -1));
 	startMin->SetMax(59);
 	wxStaticText* sM = new wxStaticText(panel, wxID_ANY, "M", wxPoint(260, 155), wxSize(-1, -1));
 
-	wxSpinCtrl* startSec = new wxSpinCtrl(panel, wxID_ANY, "", wxPoint(333, 150), wxSize(40, -1));
+	startSec = new wxSpinCtrl(panel, wxID_ANY, "", wxPoint(333, 150), wxSize(40, -1));
 	startSec->SetMax(59);
 	wxStaticText* sS = new wxStaticText(panel, wxID_ANY, "S", wxPoint(320, 155), wxSize(-1, -1));
 
-	wxSpinCtrl* startMS = new wxSpinCtrl(panel, wxID_ANY, "", wxPoint(395, 150), wxSize(40, -1));
+	startMS = new wxSpinCtrl(panel, wxID_ANY, "", wxPoint(395, 150), wxSize(40, -1));
 	startMS->SetMax(999);
 	wxStaticText* sMS = new wxStaticText(panel, wxID_ANY, "MS", wxPoint(375, 155), wxSize(-1, -1));
 
-
-
-	wxSpinCtrl* trimHour = new wxSpinCtrl(panel, wxID_ANY, "", wxPoint(215, 180), wxSize(40, -1));
+	trimHour = new wxSpinCtrl(panel, wxID_ANY, "", wxPoint(215, 180), wxSize(40, -1));
 	trimHour->SetMax(59);
 	wxStaticText* tH = new wxStaticText(panel, wxID_ANY, "H", wxPoint(200, 185), wxSize(-1, -1));
-
-	wxSpinCtrl* trimMin = new wxSpinCtrl(panel, wxID_ANY, "", wxPoint(277, 180), wxSize(40, -1));
+	
+	trimMin = new wxSpinCtrl(panel, wxID_ANY, "", wxPoint(277, 180), wxSize(40, -1));
 	trimMin->SetMax(59);
 	wxStaticText* tM = new wxStaticText(panel, wxID_ANY, "M", wxPoint(260, 185), wxSize(-1, -1));
 
-	wxSpinCtrl* trimSec = new wxSpinCtrl(panel, wxID_ANY, "", wxPoint(333, 180), wxSize(40, -1));
+	trimSec = new wxSpinCtrl(panel, wxID_ANY, "", wxPoint(333, 180), wxSize(40, -1));
 	trimSec->SetMax(59);
 	wxStaticText* tS = new wxStaticText(panel, wxID_ANY, "S", wxPoint(320, 185), wxSize(-1, -1));
 
-	wxSpinCtrl* trimMS = new wxSpinCtrl(panel, wxID_ANY, "", wxPoint(395, 180), wxSize(40, -1));
+	trimMS = new wxSpinCtrl(panel, wxID_ANY, "", wxPoint(395, 180), wxSize(40, -1));
 	trimMS->SetMax(999);
 	wxStaticText* tMS = new wxStaticText(panel, wxID_ANY, "MS", wxPoint(375, 185), wxSize(-1, -1));
 
-	wxTextCtrl* fileOutput = new wxTextCtrl(panel, wxID_ANY, "o.mp4", wxPoint(100, 300), wxSize(175, -1));
+	fileOutput = new wxTextCtrl(panel, wxID_ANY, "o.mp4", wxPoint(100, 300), wxSize(175, -1));
 	wxButton* runButton = new wxButton(panel, wxID_ANY, "Run", wxPoint(275, 300), wxSize(100, -1));
 	Bind(wxEVT_BUTTON, &MainFrame::RunFFMPEG, this, runButton->GetId());
-
-
 };
 
-/*std::string FileSelect::BrowseForFile(wxCommandEvent& event)
+void MainFrame::VCodecChanged(wxCommandEvent &event)
 {
-	return std::string();
-};*/
+	vCodecSelection->Clear();
+	switch (vFormatSelection->GetSelection())
+	{
+	case 0:
+		vCodecSelection->Append("copy");
+		return;
+	case 1:
+		for (int i = 0; i < 3; i++)
+		{
+			vCodecSelection->Append(Codecs::MP4[i]);
+		}
+		return;
+	case 2:
+		for (int i = 0; i < 3; i++)
+		{
+			vCodecSelection->Append(Codecs::WEBM[i]);
+		}
+		return;
+	case 3:
+		return;
+	case 4:
+		for (int i = 0; i < 2; i++)
+		{
+			vCodecSelection->Append(Codecs::MP3[i]);
+		}
+		return;
+	default:
+		return;
+	}
+}
 
-std::string MainFrame::GetFilePath()
+void MainFrame::BrowseForFile(wxCommandEvent& event)
 {
-
-	return std::string();
+	FileSelect* fs = new FileSelect();
 };
+
+void MainFrame::SetFilePath(std::string FilePath, std::string FileName)
+{
+	FFMPEGCommand[0] = FilePath;
+	FFMPEGCommand[1] = FileName;
+	fileLocationBox->Clear();
+	fileLocationBox->WriteText(FilePath);
+};
+
+std::string MainFrame::TrimPath()
+{
+	int FileLength = FFMPEGCommand[1].length();
+	int FileNameStart = FFMPEGCommand[0].find_last_of("\\")+1;
+
+	std::string trimmedPath = FFMPEGCommand[0].replace(FileNameStart, FileLength, "");
+	return trimmedPath;
+}
 
 void MainFrame::RunFFMPEG(wxCommandEvent& event)
 {
-	MessageBoxA(nullptr, "Run", "run", 0);
-};
+	std::string runString;
+	std::string audio;
 
-struct MainFrame::FFMPEGCommand
-{
-	std::string FileName;
-	std::string FilePath;
-	std::string FileOutName;
+	if (aCodecSelection->GetStringSelection().Lower() == "none")
+	{
+		audio = " -an ";
+	}
+	else
+	{
+		audio = " -c:a " + aCodecSelection->GetStringSelection().Lower();
+	}
+
+	if (trimVideo->IsChecked())
+	{
+		runString = ("ffmpeg -i \""
+			+ fileLocationBox->GetValue() + "\"")
+			+ " -c:v "
+			+ vCodecSelection->GetStringSelection().Lower()
+			+ audio
+			+ " -ss "
+			+ startHour->GetTextValue() + ":" + startMin->GetTextValue() + ":" + startSec->GetTextValue() + "." + startMS->GetTextValue()
+			+ " -t "
+			+ trimHour->GetTextValue() + ":" + trimMin->GetTextValue() + ":" + trimSec->GetTextValue() + "." + trimMS->GetTextValue()
+			+ " " + TrimPath()
+			+ fileOutput->GetValue();
+	}
+	else
+	{
+		runString = "ffmpeg -i \""
+			+ fileLocationBox->GetValue() + "\""
+			+ " -c:v "
+			+ vCodecSelection->GetStringSelection().Lower()
+			+ audio
+			+ " " + TrimPath()
+			+ fileOutput->GetValue();
+	}
+
+	TCHAR r[1024] = { 0 };
+	mbstowcs(r, runString.c_str(), 1024 );
+
+	STARTUPINFO si;
+	PROCESS_INFORMATION pi;
+	ZeroMemory(&si, sizeof(si));
+	si.cb = sizeof(si);
+	ZeroMemory(&pi, sizeof(pi));
+	DWORD dwErr = 0;
+	AllocConsole();
+	FILE* fDummy;
+	freopen_s(&fDummy, "CONIN$", "r", stdin);
+	freopen_s(&fDummy, "CONOUT$", "w", stderr);
+	freopen_s(&fDummy, "CONOUT$", "w", stdout);
+	std::cout << "test";
+	BOOL bFFMPEGProcess = CreateProcess(NULL, r, NULL, NULL, TRUE, NORMAL_PRIORITY_CLASS, NULL, NULL, &si, &pi);
+	if (bFFMPEGProcess)
+	{
+		AttachConsole(pi.dwProcessId);
+		WaitForSingleObject(pi.hProcess, INFINITE);
+		GetExitCodeProcess(pi.hProcess, &dwErr);
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+		std::cout << "\nDone!";
+		std::cout << "\nPress any key to close this window...";
+		char uinput = getchar();
+		fclose(stdin);
+		fclose(stderr);
+		fclose(stdout);
+		FreeConsole();
+		return;
+	}
 };
