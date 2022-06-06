@@ -1,6 +1,7 @@
 #include "MainFrame.h"
 #include "Codecs.h"
 #include "FileSelect.h"
+#include "Tasks.h"
 #include <string>
 #include <wx/wx.h>
 #include <wx/spinctrl.h>
@@ -31,7 +32,7 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
 	
 	wxPanel* panel = new wxPanel(this);
 
-	fileLocationBox = new wxTextCtrl(panel, wxID_ANY, "", wxPoint(100, 50), wxSize(300, -1));
+	fileLocationBox = new wxTextCtrl(panel, wxID_ANY, "", wxPoint(100, 50), wxSize(300, -1), wxCB_READONLY);
 	wxButton* browse = new wxButton(panel, wxID_ANY, "Browse", wxPoint(400, 50), wxSize(100, -1));
 	Bind(wxEVT_BUTTON, &MainFrame::BrowseForFile, this, browse->GetId());
 
@@ -89,6 +90,10 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
 	Bind(wxEVT_BUTTON, &MainFrame::RunFFMPEG, this, runButton->GetId());
 };
 
+
+
+
+
 void MainFrame::VCodecChanged(wxCommandEvent &event)
 {
 	vCodecSelection->Clear();
@@ -102,6 +107,7 @@ void MainFrame::VCodecChanged(wxCommandEvent &event)
 		{
 			vCodecSelection->Append(Codecs::MP4[i]);
 		}
+		vCodecSelection->Select(0);
 		return;
 	case 2:
 		for (int i = 0; i < 3; i++)
@@ -122,10 +128,18 @@ void MainFrame::VCodecChanged(wxCommandEvent &event)
 	}
 }
 
+
+
+
+
 void MainFrame::BrowseForFile(wxCommandEvent& event)
 {
 	FileSelect* fs = new FileSelect();
 };
+
+
+
+
 
 void MainFrame::SetFilePath(std::string FilePath, std::string FileName)
 {
@@ -134,6 +148,10 @@ void MainFrame::SetFilePath(std::string FilePath, std::string FileName)
 	fileLocationBox->Clear();
 	fileLocationBox->WriteText(FilePath);
 };
+
+
+
+
 
 std::string MainFrame::TrimPath()
 {
@@ -144,47 +162,61 @@ std::string MainFrame::TrimPath()
 	return trimmedPath;
 }
 
-void MainFrame::RunFFMPEG(wxCommandEvent& event)
+
+
+
+std::string MainFrame::CraftRunString(bool trimVideo)
 {
 	std::string runString;
 	std::string audio;
 
 	if (aCodecSelection->GetStringSelection().Lower() == "none")
 	{
-		audio = " -an ";
+		audio = Tasks::StripAudioTask();
 	}
 	else
 	{
 		audio = " -c:a " + aCodecSelection->GetStringSelection().Lower();
 	}
 
-	if (trimVideo->IsChecked())
+	if (trimVideo)
 	{
 		runString = ("ffmpeg -i \""
 			+ fileLocationBox->GetValue() + "\"")
-			+ " -c:v "
-			+ vCodecSelection->GetStringSelection().Lower()
+			+ Tasks::MP4Task(true, vCodecSelection->GetStringSelection(), "veryslow", 60)
 			+ audio
-			+ " -ss "
-			+ startHour->GetTextValue() + ":" + startMin->GetTextValue() + ":" + startSec->GetTextValue() + "." + startMS->GetTextValue()
-			+ " -t "
-			+ trimHour->GetTextValue() + ":" + trimMin->GetTextValue() + ":" + trimSec->GetTextValue() + "." + trimMS->GetTextValue()
-			+ " " + TrimPath()
+			+ Tasks::TrimVideoTask(startHour->GetValue(), startMin->GetValue(), startSec->GetValue(), startMS->GetValue(), trimHour->GetValue(), trimMin->GetValue(), trimSec->GetValue(), trimMS->GetValue())
+			+ " "
+			+ TrimPath()
 			+ fileOutput->GetValue();
 	}
 	else
 	{
 		runString = "ffmpeg -i \""
 			+ fileLocationBox->GetValue() + "\""
-			+ " -c:v "
-			+ vCodecSelection->GetStringSelection().Lower()
+			+ Tasks::MP4Task(true, vCodecSelection->GetStringSelection(), "veryslow", 60)
 			+ audio
 			+ " " + TrimPath()
 			+ fileOutput->GetValue();
 	}
 
-	TCHAR r[1024] = { 0 };
-	mbstowcs(r, runString.c_str(), 1024 );
+	return runString;
+}
+
+
+
+
+
+void MainFrame::RunFFMPEG(wxCommandEvent& event)
+{
+	if (Tasks::ContainsIllegalCharacters(fileOutput->GetValue()))
+	{
+		MessageBoxA(nullptr, "Output cannot contain characters\n \\/:*?\"<>|'", nullptr, 0);
+		return;
+	}
+
+	wchar_t runString[1024] = { 0 };
+	mbstowcs(runString, CraftRunString(trimVideo->IsChecked()).c_str(), 1024);
 
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
@@ -197,8 +229,8 @@ void MainFrame::RunFFMPEG(wxCommandEvent& event)
 	freopen_s(&fDummy, "CONIN$", "r", stdin);
 	freopen_s(&fDummy, "CONOUT$", "w", stderr);
 	freopen_s(&fDummy, "CONOUT$", "w", stdout);
-	std::cout << "test";
-	BOOL bFFMPEGProcess = CreateProcess(NULL, r, NULL, NULL, TRUE, NORMAL_PRIORITY_CLASS, NULL, NULL, &si, &pi);
+	std::wcout << std::endl << runString << std::endl << std::endl;
+	BOOL bFFMPEGProcess = CreateProcess(NULL, runString, NULL, NULL, TRUE, NORMAL_PRIORITY_CLASS, NULL, NULL, &si, &pi);
 	if (bFFMPEGProcess)
 	{
 		AttachConsole(pi.dwProcessId);
@@ -215,4 +247,10 @@ void MainFrame::RunFFMPEG(wxCommandEvent& event)
 		FreeConsole();
 		return;
 	}
+
+	fclose(stdin);
+	fclose(stderr);
+	fclose(stdout);
+	MessageBoxA(nullptr, "Error something went wrong with launching FFMPEG", nullptr, 0);
+	FreeConsole();
 };
