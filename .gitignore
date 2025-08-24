@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+/.vs/FFMPEG-GUI
+/Debug
+/x64
