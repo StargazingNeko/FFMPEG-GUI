@@ -152,12 +152,14 @@
     <ClCompile Include="App.cpp" />
     <ClCompile Include="FileSelect.cpp" />
     <ClCompile Include="MainFrame.cpp" />
+    <ClCompile Include="Tasks.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.h" />
     <ClInclude Include="Codecs.h" />
     <ClInclude Include="FileSelect.h" />
     <ClInclude Include="MainFrame.h" />
+    <ClInclude Include="Tasks.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

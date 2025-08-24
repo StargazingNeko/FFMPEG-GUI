@@ -11,6 +11,7 @@ public:
 	void BrowseForFile(wxCommandEvent& event);
 	static void SetFilePath(std::string FilePath, std::string FileName);
 	std::string TrimPath();
+	std::string CraftRunString(bool trimVideo);
 
 	DECLARE_EVENT_TABLE()
 };
